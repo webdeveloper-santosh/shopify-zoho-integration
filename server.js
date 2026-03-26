@@ -84,10 +84,12 @@ async function createOrGetContact(data) {
             "https://www.zohoapis.in/crm/v2/Contacts",
             {
                 data: [{
-                    First_Name: data.first_name || "",
-                    Last_Name: data.last_name || "Shopify",
-                    Email: data.email,
-                    Phone: data.phone || ""
+                    First_Name: data.billing_address?.first_name || "",
+Last_Name: data.billing_address?.last_name || "Shopify",
+Phone: data.phone || data.billing_address?.phone || "",
+Mailing_City: data.billing_address?.city || "",
+Mailing_State: data.billing_address?.province || "",
+Mailing_Country: data.billing_address?.country || ""
                 }]
             },
             {
@@ -113,22 +115,23 @@ async function createOrGetContact(data) {
 async function createDeal(data, contactId) {
     try {
         await axios.post(
-            "https://www.zohoapis.in/crm/v2/Deals",
-            {
-                data: [{
-                    Deal_Name: `Order #${data.id}`,
-                    Amount: data.total_price,
-                    Stage: "Closed Won",
-                    Closing_Date: new Date().toISOString().split("T")[0],
-                    Contact_Name: contactId
-                }]
-            },
-            {
-                headers: {
-                    Authorization: `Zoho-oauthtoken ${accessToken}`,
-                }
-            }
-        );
+  "https://www.zohoapis.in/crm/v2/Deals",
+  {
+    data: [{
+      Deal_Name: data.name, // ✔ correct order number
+      Amount: data.total_price,
+      Stage: "Closed Won",
+      Closing_Date: new Date().toISOString().split("T")[0],
+      Contact_Name: contactId,
+      Description: JSON.stringify(data.line_items) // ✔ product info
+    }]
+  },
+  {
+    headers: {
+      Authorization: `Zoho-oauthtoken ${accessToken}`,
+    }
+  }
+);
 
         console.log("💰 Deal Created");
 
