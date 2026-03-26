@@ -1,6 +1,14 @@
 const express = require("express");
 const axios = require("axios");
 
+
+process.on("uncaughtException", (err) => {
+    console.error("💥 Uncaught Exception:", err.message);
+});
+
+process.on("unhandledRejection", (err) => {
+    console.error("💥 Unhandled Rejection:", err);
+});
 const app = express();
 app.use(express.json());
 
@@ -52,7 +60,22 @@ app.post("/webhook/shopify", async (req, res) => {
 
         res.sendStatus(200);
     } catch (error) {
-        console.error("❌ Error:", error.response?.data || error.message);
+        
+
+console.error("❌ Error:");
+
+if (error.response) {
+    console.error("Status:", error.response.status);
+    console.error("Data:", JSON.stringify(error.response.data));
+} else {
+    console.error(error.message);
+}
+
+
+
+
+        
+        
         res.sendStatus(500);
     }
 });
@@ -104,9 +127,9 @@ Mailing_Country: data.billing_address?.country || ""
 
     } catch (error) {
         if (error.response?.data?.code === "INVALID_TOKEN") {
-            await refreshAccessToken();
-            return createOrGetContact(data); // retry
-        }
+    await refreshAccessToken();
+    return createDeal(data, contactId); // retry
+}
         throw error;
     }
 }
@@ -137,9 +160,9 @@ async function createDeal(data, contactId) {
 
     } catch (error) {
         if (error.response?.data?.code === "INVALID_TOKEN") {
-            await refreshAccessToken();
-            return createDeal(data, contactId); // retry
-        }
+    await refreshAccessToken();
+    return createDeal(data, contactId); // retry
+}
         throw error;
     }
 }
@@ -152,4 +175,12 @@ app.get("/", (req, res) => {
 // 🚀 Server start
 app.listen(3000, () => {
     console.log("🚀 Server running on port 3000");
+});
+
+
+
+
+
+app.get("/", (req, res) => {
+    res.send("Server running safely ✅");
 });
