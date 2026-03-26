@@ -6,7 +6,7 @@ app.use(express.json());
 
 // 🔑 Zoho Credentials (yaha apne values daalo)
 const CLIENT_ID = "1000.2ENFLE77MM98BW8WDZ74ARGDDQ48CO";
-const CLIENT_SECRET = "75058c4607f7607086acb5ca9e2d3ef4b818d2e071";
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REFRESH_TOKEN = "1000.8ca5eb99f6d004a069eee442e576f7f5.28cd337dc6a48f286be9e3e6c70be0b4";
 
 let accessToken = "1000.58efc7666cca8c66cdd401383fb14fd7.c1972fe98005faa0cdb556c3d55e7033";
