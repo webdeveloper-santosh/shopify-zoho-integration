@@ -77,51 +77,39 @@ if (error.response) {
 });
 
 // 🟢 Create or Get Contact (duplicate fix)
-async function createOrGetContact(data) {
-    const email = data.email;
 
-    try {
-        const search = await axios.get(
-            `https://www.zohoapis.in/crm/v2/Contacts/search?email=${email}`,
-            {
-                headers: {
-                    Authorization: `Zoho-oauthtoken ${accessToken}`,
-                },
+async function createContact(data) {
+
+    const address = data.shipping_address || {};
+
+    const response = await axios.post(
+        "https://www.zohoapis.in/crm/v2/Contacts",
+        {
+            data: [{
+                First_Name: address.first_name || "",
+                Last_Name: address.last_name || "Shopify",
+                Email: data.email,
+                Phone: address.phone || data.phone || "",
+
+                // ✅ SHIPPING ADDRESS
+                Shipping_Street: address.address1 || "",
+                Shipping_City: address.city || "",
+                Shipping_State: address.province || "",
+                Shipping_Code: address.zip || "",
+                Shipping_Country: address.country || ""
+            }]
+        },
+        {
+            headers: {
+                Authorization: `Zoho-oauthtoken ${accessToken}`
             }
-        );
-
-        if (search.data.data) {
-            console.log("👤 Contact already exists");
-            return search.data.data[0].id;
         }
-    } catch (err) {
-        // ignore if not found
-    }
+    );
 
-    try {
-        const response = await axios.post(
-            "https://www.zohoapis.in/crm/v2/Contacts",
-            {
-                data: [{
-                    First_Name: data.billing_address?.first_name || "",
-Last_Name: data.billing_address?.last_name || "Shopify",
-Phone: data.phone || data.billing_address?.phone || "",
-Mailing_City: data.billing_address?.city || "",
-Mailing_State: data.billing_address?.province || "",
-Mailing_Country: data.billing_address?.country || ""
-                }]
-            },
-            {
-                headers: {
-                    Authorization: `Zoho-oauthtoken ${accessToken}`,
-                }
+    console.log("👤 Contact Created");
 
-
-            }
-        );
-
-        console.log("✅ New Contact Created");
-        return response.data.data[0].details.id;
+    return response.data.data[0].details.id;
+}
 
     } catch (error) {
         if (error.response?.data?.code === "INVALID_TOKEN") {
@@ -135,37 +123,65 @@ Mailing_Country: data.billing_address?.country || ""
 // 🟢 Create Deal + Link Contact
 async function createDeal(data, contactId) {
 
-if (!contactId) {
+    if (!contactId) {
         console.log("⚠️ No contactId found, skipping deal link");
     }
-    
+
+    const items = data.line_items || [];
+
+    const productDetails = items.map(item => {
+        return `Product: ${item.title}
+Qty: ${item.quantity}
+SKU: ${item.sku}
+Variant: ${item.variant_title}`;
+    }).join("\n\n");
+
     try {
         await axios.post(
-  "https://www.zohoapis.in/crm/v2/Deals",
-  {
-    data: [{
-      Deal_Name: data.name, // ✔ correct order number
-      Amount: data.total_price,
-      Stage: "Closed Won",
-      Closing_Date: new Date().toISOString().split("T")[0],
-      Contact_Name: contactId,
-      Description: JSON.stringify(data.line_items) // ✔ product info
-    }]
-  },
-  {
-    headers: {
-      Authorization: `Zoho-oauthtoken ${accessToken}`,
-    }
-  }
-);
+            "https://www.zohoapis.in/crm/v2/Deals",
+            {
+                data: [{
+                    Deal_Name: data.name,
+                    Amount: data.total_price,
+                    Stage: "Closed Won",
+                    Closing_Date: new Date().toISOString().split("T")[0],
+
+                    Contact_Name: contactId,
+
+                    Description: `
+🛒 PRODUCTS:
+${productDetails}
+
+💰 PRICING:
+Subtotal: ${data.subtotal_price}
+Shipping: ${data.total_shipping_price_set?.shop_money?.amount}
+Discount: ${data.total_discounts}
+Total: ${data.total_price}
+
+📦 ORDER:
+Payment: ${data.gateway || data.payment_gateway_names?.join(", ")}
+Financial Status: ${data.financial_status}
+Fulfillment: ${data.fulfillment_status}
+
+🧾 EXTRA:
+Notes: ${data.note}
+Tags: ${data.tags}
+Order Date: ${data.created_at}
+                    `
+                }]
+            },
+            {
+                headers: {
+                    Authorization: `Zoho-oauthtoken ${accessToken}`
+                }
+            }
+        );
 
         console.log("💰 Deal Created");
 
-    } 
-
-    catch (error) {
-    console.error("❌ Deal Error:", error.response?.data || error.message);
-}
+    } catch (error) {
+        console.error("❌ Deal Error:", error.response?.data || error.message);
+    }
 }
 
 // 🧪 Health check (browser me open karke test kar sakte ho)
