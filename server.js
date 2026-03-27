@@ -111,7 +111,7 @@ async function createContact(data) {
     return response.data.data[0].details.id;
 }
 
-    } catch (error) {
+     catch (error) {
         if (error.response?.data?.code === "INVALID_TOKEN") {
     await refreshAccessToken();
     return createDeal(data, contactId); // retry
