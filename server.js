@@ -161,7 +161,7 @@ Total: ${data.total_price}
 📦 ORDER:
 Payment: ${data.gateway || data.payment_gateway_names?.join(", ")}
 Financial Status: ${data.financial_status}
-Fulfillment: ${data.fulfillment_status}
+Fulfillment: ${data.fulfillment_status || "Not Fulfilled"}
 
 🧾 EXTRA:
 Notes: ${data.note}
@@ -183,7 +183,6 @@ Order Date: ${data.created_at}
         console.error("❌ Deal Error:", error.response?.data || error.message);
     }
 }
-
 // 🧪 Health check (browser me open karke test kar sakte ho)
 app.get("/", (req, res) => {
     res.send("🚀 Shopify → Zoho CRM Integration Running");
@@ -193,9 +192,6 @@ app.get("/", (req, res) => {
 app.listen(3000, () => {
     console.log("🚀 Server running on port 3000");
 });
-
-
-
 
 
 app.get("/", (req, res) => {
