@@ -19,7 +19,7 @@ const REFRESH_TOKEN = "1000.8ca5eb99f6d004a069eee442e576f7f5.28cd337dc6a48f286be
 
 const accessToken = process.env.ACCESS_TOKEN;
 
-// 🔄 Auto Refresh Token
+// 🔄 Refresh Access Token
 async function refreshAccessToken() {
     try {
         const response = await axios.post(
@@ -37,6 +37,7 @@ async function refreshAccessToken() {
 
         accessToken = response.data.access_token;
         console.log("🔄 New Access Token Generated");
+
     } catch (error) {
         console.error("❌ Token Refresh Error:", error.response?.data || error.message);
     }
@@ -45,82 +46,75 @@ async function refreshAccessToken() {
 // 🟢 Shopify Webhook
 app.post("/webhook/shopify", async (req, res) => {
     const data = req.body;
+
     console.log("📦 Order Received:", data.id);
 
     try {
         let contactId = null;
 
-if (data.email) {
-    contactId = await createOrGetContact(data);
-}
+        if (data.email) {
+            contactId = await createContact(data);
+        }
 
-if (data.total_price) {
-    await createDeal(data, contactId);
-}
+        if (data.total_price) {
+            await createDeal(data, contactId);
+        }
 
         res.sendStatus(200);
+
     } catch (error) {
-        
-
-console.error("❌ Error:");
-
-if (error.response) {
-    console.error("Status:", error.response.status);
-    console.error("Data:", JSON.stringify(error.response.data));
-} else {
-    console.error(error.message);
-}
-
-        
+        console.error("❌ Error:", error.response?.data || error.message);
         res.sendStatus(500);
     }
 });
 
-// 🟢 Create or Get Contact (duplicate fix)
-
+// 🟢 Create Contact
 async function createContact(data) {
 
     const address = data.shipping_address || {};
 
-    const response = await axios.post(
-        "https://www.zohoapis.in/crm/v2/Contacts",
-        {
-            data: [{
-                First_Name: address.first_name || "",
-                Last_Name: address.last_name || "Shopify",
-                Email: data.email,
-                Phone: address.phone || data.phone || "",
+    try {
+        const response = await axios.post(
+            "https://www.zohoapis.in/crm/v2/Contacts",
+            {
+                data: [{
+                    First_Name: address.first_name || "",
+                    Last_Name: address.last_name || "Shopify",
+                    Email: data.email,
+                    Phone: address.phone || data.phone || "",
 
-                // ✅ SHIPPING ADDRESS
-                Shipping_Street: address.address1 || "",
-                Shipping_City: address.city || "",
-                Shipping_State: address.province || "",
-                Shipping_Code: address.zip || "",
-                Shipping_Country: address.country || ""
-            }]
-        },
-        {
-            headers: {
-                Authorization: `Zoho-oauthtoken ${accessToken}`
+                    Shipping_Street: address.address1 || "",
+                    Shipping_City: address.city || "",
+                    Shipping_State: address.province || "",
+                    Shipping_Code: address.zip || "",
+                    Shipping_Country: address.country || ""
+                }]
+            },
+            {
+                headers: {
+                    Authorization: `Zoho-oauthtoken ${accessToken}`
+                }
             }
-        }
-    );
+        );
 
-    console.log("👤 Contact Created");
+        console.log("👤 Contact Created");
 
-    return response.data.data[0].details.id;
-}
+        return response.data.data[0].details.id;
 
-     catch (error) {
+    } catch (error) {
+
+        // 🔁 Token expired → refresh & retry
         if (error.response?.data?.code === "INVALID_TOKEN") {
-    await refreshAccessToken();
-    return createDeal(data, contactId); // retry
-}
-        throw error;
+            await refreshAccessToken();
+            return createContact(data);
+        }
+
+        console.error("❌ Contact Error:", error.response?.data || error.message);
+        return null;
     }
 }
 
-// 🟢 Create Deal + Link Contact
+// 🟢 Create Deal
 async function createDeal(data, contactId) {
 
     if (!contactId) {
@@ -180,24 +174,24 @@ Order Date: ${data.created_at}
         console.log("💰 Deal Created");
 
     } catch (error) {
+
+        // 🔁 Token expired → refresh & retry
+        if (error.response?.data?.code === "INVALID_TOKEN") {
+            await refreshAccessToken();
+            return createDeal(data, contactId);
+        }
+
         console.error("❌ Deal Error:", error.response?.data || error.message);
     }
 }
 
-
-
-
-// 🧪 Health check (browser me open karke test kar sakte ho)
+// 🧪 Health Check
 app.get("/", (req, res) => {
     res.send("🚀 Shopify → Zoho CRM Integration Running");
 });
 
-// 🚀 Server start
+// 🚀 Server Start
 app.listen(3000, () => {
     console.log("🚀 Server running on port 3000");
 });
 
-
-app.get("/", (req, res) => {
-    res.send("Server running safely ✅");
-});
