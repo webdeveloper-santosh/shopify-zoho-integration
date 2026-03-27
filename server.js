@@ -24,25 +24,27 @@ async function refreshAccessToken() {
     try {
         const response = await axios.post(
             "https://accounts.zoho.in/oauth/v2/token",
-            null,
+            new URLSearchParams({
+                refresh_token: REFRESH_TOKEN,
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                grant_type: "refresh_token",
+            }),
             {
-                params: {
-                    refresh_token: REFRESH_TOKEN,
-                    client_id: CLIENT_ID,
-                    client_secret: CLIENT_SECRET,
-                    grant_type: "refresh_token",
-                },
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                }
             }
         );
 
         accessToken = response.data.access_token;
+
         console.log("🔄 New Access Token Generated");
 
     } catch (error) {
         console.error("❌ Token Refresh Error:", error.response?.data || error.message);
     }
 }
-
 // 🟢 Shopify Webhook
 app.post("/webhook/shopify", async (req, res) => {
     const data = req.body;
