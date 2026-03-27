@@ -50,13 +50,13 @@ app.post("/webhook/shopify", async (req, res) => {
     try {
         let contactId = null;
 
-        if (data.email) {
-            contactId = await createOrGetContact(data);
-        }
+if (data.email) {
+    contactId = await createOrGetContact(data);
+}
 
-        if (data.total_price) {
-            await createDeal(data, contactId);
-        }
+if (data.total_price) {
+    await createDeal(data, contactId);
+}
 
         res.sendStatus(200);
     } catch (error) {
@@ -136,6 +136,11 @@ Mailing_Country: data.billing_address?.country || ""
 
 // 🟢 Create Deal + Link Contact
 async function createDeal(data, contactId) {
+
+if (!contactId) {
+        console.log("⚠️ No contactId found, skipping deal link");
+    }
+    
     try {
         await axios.post(
   "https://www.zohoapis.in/crm/v2/Deals",
