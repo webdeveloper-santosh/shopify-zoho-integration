@@ -6,9 +6,9 @@ const app = express();
 app.use(express.json());
 
 // 🔐 ENV VARIABLES
-const CLIENT_ID = "1000.2ENFLE77MM98BW8WDZ74ARGDDQ48CO";
+const CLIENT_ID = "xxx";
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REFRESH_TOKEN = "1000.8ca5eb99f6d004a069eee442e576f7f5.28cd337dc6a48f286be9e3e6c70be0b4";
+const REFRESH_TOKEN = "xxx";
 
 let accessToken = null;
 
