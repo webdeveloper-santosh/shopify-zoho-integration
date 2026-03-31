@@ -74,6 +74,26 @@ async function createContact(data) {
     }
 }
 
+
+// Find deal By Order Id
+async function findDealByOrderId(orderId) {
+    try {
+        const res = await axios.get(
+            `https://www.zohoapis.in/crm/v2/Deals/search?criteria=(Order_ID:equals:${orderId})`,
+            {
+                headers: {
+                    Authorization: `Zoho-oauthtoken ${accessToken}`
+                }
+            }
+        );
+
+        return res.data.data?.[0] || null;
+
+    } catch (error) {
+        return null;
+    }
+}
+
 // 💰 Create Deal
 
 async function createDeal(data, contactId) {
@@ -159,8 +179,7 @@ app.post("/webhook/shopify", async (req, res) => {
     console.log("📦 Order:", data.id);
 
     try {
-        await refreshAccessToken();
-
+        
         let contactId = null;
 
         if (data.email) {
