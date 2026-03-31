@@ -120,13 +120,15 @@ async function createContact(data) {
 }
 
 // 💰 Create Deal
+// 💰 Create Deal (FINAL VERSION)
 async function createDeal(data, contactId) {
 
-   if (!contactId) {
-    console.log("❌ No contactId, skipping deal");
-    return;
-}
-    
+    // ✅ Safety check (MOST IMPORTANT)
+    if (!contactId) {
+        console.log("❌ No contactId, skipping deal");
+        return;
+    }
+
     const items = data.line_items || [];
 
     const productDetails = items.map(item => {
@@ -137,16 +139,18 @@ Variant: ${item.variant_title}`;
     }).join("\n\n");
 
     try {
-        await axios.post(
+
+        const response = await axios.post(
             "https://www.zohoapis.in/crm/v2/Deals",
             {
                 data: [{
                     Deal_Name: data.name,
-                    Order_ID: data.id,   // 🔥 YE LINE ADD KI HAI
-
                     Amount: data.total_price,
                     Stage: "Closed Won",
                     Closing_Date: new Date().toISOString().split("T")[0],
+
+                    // ✅ IMPORTANT (duplicate रोकने के लिए)
+                    Order_Id: data.id,
 
                     Contact_Name: contactId,
 
@@ -191,28 +195,29 @@ Order Date: ${data.created_at}
 
         console.log("💰 Deal Created");
 
+        return response.data;
+
     } catch (error) {
-       if (
-    error.response?.data?.code === "INVALID_TOKEN" ||
-    error.response?.status === 401
-) {
-    console.log("🔄 Refreshing token...");
-    await refreshAccessToken();
-    if (contactId) {
-    return createDeal(data, contactId);
-} else {
-    console.log("❌ Retry skipped, contactId missing");
-}
-    
-    
-    else {
-    console.log("❌ Retry skipped, no contactId");
-}
-}
+
+        // 🔄 Token expire handle
+        if (error.response?.data?.code === "INVALID_TOKEN") {
+            console.log("🔄 Token expired, refreshing...");
+
+            await refreshAccessToken();
+
+            // ✅ SAFE RETRY
+            if (contactId) {
+                return createDeal(data, contactId);
+            } else {
+                console.log("❌ Retry skipped, no contactId");
+            }
+        }
 
         console.error("❌ Deal Error:", error.response?.data || error.message);
     }
 }
+
+
 
 // 🟢 Webhook
 app.post("/webhook/shopify", async (req, res) => {
