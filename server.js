@@ -121,6 +121,12 @@ async function createContact(data) {
 
 // 💰 Create Deal
 async function createDeal(data, contactId) {
+
+    if (!contactId) {
+    console.log("❌ No contactId, skipping deal");
+    return;
+}
+    
     const items = data.line_items || [];
 
     const productDetails = items.map(item => {
@@ -192,7 +198,11 @@ Order Date: ${data.created_at}
 ) {
     console.log("🔄 Refreshing token...");
     await refreshAccessToken();
+    if (contactId) {
     return createDeal(data, contactId);
+} else {
+    console.log("❌ Retry skipped, no contactId");
+}
 }
 
         console.error("❌ Deal Error:", error.response?.data || error.message);
