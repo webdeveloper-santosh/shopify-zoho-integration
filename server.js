@@ -54,6 +54,27 @@ async function refreshAccessToken() {
         console.error("❌ Token Refresh Error:", error.response?.data || error.message);
     }
 }
+
+// Contact By email ID 
+async function findContactByEmail(email) {
+    try {
+        const res = await axios.get(
+            `https://www.zohoapis.in/crm/v2/Contacts/search?criteria=(Email:equals:${email})`,
+            {
+                headers: {
+                    Authorization: `Zoho-oauthtoken ${accessToken}`
+                }
+            }
+        );
+
+        return res.data.data?.[0] || null;
+
+    } catch (error) {
+        return null;
+    }
+}
+
+
 // 👤 Create Contact
 async function createContact(data) {
     const address = data.shipping_address || {};
@@ -99,7 +120,6 @@ async function createContact(data) {
 }
 
 // 💰 Create Deal
-
 async function createDeal(data, contactId) {
     const items = data.line_items || [];
 
@@ -179,24 +199,27 @@ Order Date: ${data.created_at}
     }
 }
 
-
-
 // 🟢 Webhook
 app.post("/webhook/shopify", async (req, res) => {
     const data = req.body;
     console.log("📦 Order:", data.id);
 
     try {
-        
         let contactId = null;
 
         if (data.email) {
-            contactId = await createContact(data);
+            let existingContact = await findContactByEmail(data.email);
+
+            if (existingContact) {
+                console.log("👤 Contact already exists");
+                contactId = existingContact.id;
+            } else {
+                contactId = await createContact(data);
+            }
         }
 
-        if (data.total_price) {
+        if (data.total_price !== undefined && data.total_price !== null && contactId) {
 
-            // 🔍 Duplicate check
             let existingDeal = await findDealByOrderId(data.id);
 
             if (existingDeal) {
@@ -213,7 +236,6 @@ app.post("/webhook/shopify", async (req, res) => {
         res.sendStatus(500);
     }
 });
-
 
 // 🧪 Test route
 app.get("/", (req, res) => {
