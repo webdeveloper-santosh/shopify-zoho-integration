@@ -9,31 +9,51 @@ const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
 
+
+//new code added 
+async function findDealByOrderId(orderId) {
+    try {
+        const res = await axios.get(
+            `https://www.zohoapis.in/crm/v2/Deals/search?criteria=(Order_ID:equals:${orderId})`,
+            {
+                headers: {
+                    Authorization: `Zoho-oauthtoken ${accessToken}`
+                }
+            }
+        );
+
+        return res.data.data?.[0] || null;
+
+    } catch (error) {
+        return null;
+    }
+}
+
+
 let accessToken = "";
 
 // 🔄 Refresh Access Token
 async function refreshAccessToken() {
     try {
-        const response = await axios.post(
-            "https://accounts.zoho.in/oauth/v2/token",
-            null,
-            {
-                params: {
-                    refresh_token: REFRESH_TOKEN,
-                    client_id: CLIENT_ID,
-                    client_secret: CLIENT_SECRET,
-                    grant_type: "refresh_token",
-                },
+        // ⏳ Delay add kiya (IMPORTANT)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        const response = await axios.post("https://accounts.zoho.in/oauth/v2/token", null, {
+            params: {
+                refresh_token: REFRESH_TOKEN,
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                grant_type: "refresh_token"
             }
-        );
+        });
 
         accessToken = response.data.access_token;
         console.log("🔄 New Access Token Generated");
+
     } catch (error) {
         console.error("❌ Token Refresh Error:", error.response?.data || error.message);
     }
 }
-
 // 👤 Create Contact
 async function createContact(data) {
     const address = data.shipping_address || {};
@@ -66,31 +86,15 @@ async function createContact(data) {
         return response.data.data[0].details.id;
 
     } catch (error) {
-        if (error.response?.data?.code === "INVALID_TOKEN") {
-            await refreshAccessToken();
-            return createContact(data);
-        }
-        throw error;
-    }
+        if (
+    error.response?.data?.code === "INVALID_TOKEN" ||
+    error.response?.status === 401
+) {
+    console.log("🔄 Refreshing token...");
+    await refreshAccessToken();
+    return createDeal(data, contactId);
 }
-
-
-// Find deal By Order Id
-async function findDealByOrderId(orderId) {
-    try {
-        const res = await axios.get(
-            `https://www.zohoapis.in/crm/v2/Deals/search?criteria=(Order_ID:equals:${orderId})`,
-            {
-                headers: {
-                    Authorization: `Zoho-oauthtoken ${accessToken}`
-                }
-            }
-        );
-
-        return res.data.data?.[0] || null;
-
-    } catch (error) {
-        return null;
+        throw error;
     }
 }
 
@@ -162,10 +166,14 @@ Order Date: ${data.created_at}
         console.log("💰 Deal Created");
 
     } catch (error) {
-        if (error.response?.data?.code === "INVALID_TOKEN") {
-            await refreshAccessToken();
-            return createDeal(data, contactId);
-        }
+       if (
+    error.response?.data?.code === "INVALID_TOKEN" ||
+    error.response?.status === 401
+) {
+    console.log("🔄 Refreshing token...");
+    await refreshAccessToken();
+    return createDeal(data, contactId);
+}
 
         console.error("❌ Deal Error:", error.response?.data || error.message);
     }
