@@ -122,7 +122,7 @@ async function createContact(data) {
 // 💰 Create Deal
 async function createDeal(data, contactId) {
 
-    if (!contactId) {
+   if (!contactId) {
     console.log("❌ No contactId, skipping deal");
     return;
 }
@@ -201,6 +201,11 @@ Order Date: ${data.created_at}
     if (contactId) {
     return createDeal(data, contactId);
 } else {
+    console.log("❌ Retry skipped, contactId missing");
+}
+    
+    
+    else {
     console.log("❌ Retry skipped, no contactId");
 }
 }
@@ -217,6 +222,7 @@ app.post("/webhook/shopify", async (req, res) => {
     try {
         let contactId = null;
 
+        // 👤 CONTACT HANDLE
         if (data.email) {
             let existingContact = await findContactByEmail(data.email);
 
@@ -228,8 +234,12 @@ app.post("/webhook/shopify", async (req, res) => {
             }
         }
 
-        if (data.total_price !== undefined && data.total_price !== null && contactId) {
-
+        // 💰 DEAL HANDLE
+        if (
+            data.total_price !== undefined &&
+            data.total_price !== null &&
+            contactId
+        ) {
             let existingDeal = await findDealByOrderId(data.id);
 
             if (existingDeal) {
@@ -237,6 +247,8 @@ app.post("/webhook/shopify", async (req, res) => {
             } else {
                 await createDeal(data, contactId);
             }
+        } else {
+            console.log("❌ Skipping deal, no contactId or price");
         }
 
         res.sendStatus(200);
@@ -246,6 +258,10 @@ app.post("/webhook/shopify", async (req, res) => {
         res.sendStatus(500);
     }
 });
+
+
+
+
 
 // 🧪 Test route
 app.get("/", (req, res) => {
