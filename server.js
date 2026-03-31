@@ -75,6 +75,7 @@ async function createContact(data) {
 }
 
 // 💰 Create Deal
+
 async function createDeal(data, contactId) {
     const items = data.line_items || [];
 
@@ -91,6 +92,8 @@ Variant: ${item.variant_title}`;
             {
                 data: [{
                     Deal_Name: data.name,
+                    Order_ID: data.id,   // 🔥 YE LINE ADD KI HAI
+
                     Amount: data.total_price,
                     Stage: "Closed Won",
                     Closing_Date: new Date().toISOString().split("T")[0],
@@ -148,6 +151,8 @@ Order Date: ${data.created_at}
     }
 }
 
+
+
 // 🟢 Webhook
 app.post("/webhook/shopify", async (req, res) => {
     const data = req.body;
@@ -163,7 +168,15 @@ app.post("/webhook/shopify", async (req, res) => {
         }
 
         if (data.total_price) {
-            await createDeal(data, contactId);
+
+            // 🔍 Duplicate check
+            let existingDeal = await findDealByOrderId(data.id);
+
+            if (existingDeal) {
+                console.log("💰 Deal already exists");
+            } else {
+                await createDeal(data, contactId);
+            }
         }
 
         res.sendStatus(200);
@@ -173,6 +186,7 @@ app.post("/webhook/shopify", async (req, res) => {
         res.sendStatus(500);
     }
 });
+
 
 // 🧪 Test route
 app.get("/", (req, res) => {
