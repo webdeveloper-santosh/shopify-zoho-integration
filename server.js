@@ -120,9 +120,12 @@ async function createContact(data) {
 }
 
 // 💰 Create Deal (FINAL VERSION)
+
+
+// 💰 Create Deal (FINAL PRO VERSION)
 async function createDeal(data, contactId) {
 
-    // ✅ Safety check (MOST IMPORTANT)
+    // ✅ Safety check
     if (!contactId) {
         console.log("❌ No contactId, skipping deal");
         return;
@@ -143,27 +146,31 @@ Variant: ${item.variant_title}`;
             "https://www.zohoapis.in/crm/v2/Deals",
             {
                 data: [{
+                    // 🧾 BASIC INFO
                     Deal_Name: data.name,
                     Amount: data.total_price,
                     Stage: "Closed Won",
                     Closing_Date: new Date().toISOString().split("T")[0],
 
-                    // ✅ IMPORTANT (duplicate रोकने के लिए)
+                    // 🔗 CONTACT LINK (FIXED)
+                    Contact_Name: {
+                        id: contactId
+                    },
+
+                    // 🆔 ORDER ID (duplicate control)
                     Order_Id: data.id,
 
-                    Contact_Name: {
-                    id: contactId
-                                    },
+                    // 🔥 CUSTOM FIELDS
                     SKU: items.map(i => i.sku).join(", "),
-    Payment_Method: data.gateway || data.payment_gateway_names?.join(", "),
+                    Payment_Method: data.gateway || data.payment_gateway_names?.join(", "),
 
-
+                    // 📝 DESCRIPTION (FULL DETAILS)
                     Description: `
 🛒 PRODUCTS:
 ${productDetails}
 
 👤 CUSTOMER:
-Name: ${data.customer?.first_name} ${data.customer?.last_name}
+Name: ${data.customer?.first_name || "Guest"} ${data.customer?.last_name || ""}
 Email: ${data.email}
 Phone: ${data.phone}
 
@@ -203,7 +210,7 @@ Order Date: ${data.created_at}
 
     } catch (error) {
 
-        // 🔄 Token expire handle
+        // 🔄 Token expired handle
         if (error.response?.data?.code === "INVALID_TOKEN") {
             console.log("🔄 Token expired, refreshing...");
 
@@ -220,7 +227,6 @@ Order Date: ${data.created_at}
         console.error("❌ Deal Error:", error.response?.data || error.message);
     }
 }
-
 
 
 // 🟢 Webhook
