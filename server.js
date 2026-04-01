@@ -74,26 +74,33 @@ async function findContactByEmail(email) {
     }
 }
 
-
 // 👤 Create Contact
+// 👤 Create Contact (FINAL PRO VERSION)
 async function createContact(data) {
-    const address = data.shipping_address || {};
 
     try {
+
         const response = await axios.post(
             "https://www.zohoapis.in/crm/v2/Contacts",
             {
                 data: [{
-                    First_Name: address.first_name || "",
-                    Last_Name: address.last_name || "Shopify",
-                    Email: data.email,
-                    Phone: address.phone || data.phone || "",
+                    Last_Name: data.customer?.last_name || "Shopify",
+                    First_Name: data.customer?.first_name || "",
 
-                    Shipping_Street: address.address1 || "",
-                    Shipping_City: address.city || "",
-                    Shipping_State: address.province || "",
-                    Shipping_Code: address.zip || "",
-                    Shipping_Country: address.country || ""
+                    Email: data.email,
+                    Phone: data.phone,
+
+                    Mailing_Street: data.shipping_address?.address1,
+                    Mailing_City: data.shipping_address?.city,
+                    Mailing_State: data.shipping_address?.province,
+                    Mailing_Zip: data.shipping_address?.zip,
+                    Mailing_Country: data.shipping_address?.country,
+
+                    Description: `
+Order ID: ${data.id}
+Customer Note: ${data.note}
+Tags: ${data.tags}
+                    `
                 }]
             },
             {
@@ -104,23 +111,26 @@ async function createContact(data) {
         );
 
         console.log("👤 Contact Created");
+
+        // 🔥 MOST IMPORTANT LINE (ID RETURN)
         return response.data.data[0].details.id;
 
     } catch (error) {
-        if (
-    error.response?.data?.code === "INVALID_TOKEN" ||
-    error.response?.status === 401
-) {
-    console.log("🔄 Refreshing token...");
-    await refreshAccessToken();
-    return createDeal(data, contactId);
-}
-        throw error;
+
+        // 🔄 Token expire handle
+        if (error.response?.data?.code === "INVALID_TOKEN") {
+            console.log("🔄 Token expired, refreshing...");
+
+            await refreshAccessToken();
+
+            // ✅ RETRY
+            return createContact(data);
+        }
+
+        console.error("❌ Contact Error:", error.response?.data || error.message);
+        return null;
     }
 }
-
-// 💰 Create Deal (FINAL VERSION)
-
 
 // 💰 Create Deal (FINAL PRO VERSION)
 async function createDeal(data, contactId) {
@@ -235,10 +245,12 @@ app.post("/webhook/shopify", async (req, res) => {
     console.log("📦 Order:", data.id);
 
     try {
+
         let contactId = null;
 
         // 👤 CONTACT HANDLE
         if (data.email) {
+
             let existingContact = await findContactByEmail(data.email);
 
             if (existingContact) {
@@ -249,12 +261,11 @@ app.post("/webhook/shopify", async (req, res) => {
             }
         }
 
+        console.log("👉 Final Contact ID:", contactId); // DEBUG
+
         // 💰 DEAL HANDLE
-        if (
-            data.total_price !== undefined &&
-            data.total_price !== null &&
-            contactId
-        ) {
+        if (data.total_price && contactId) {
+
             let existingDeal = await findDealByOrderId(data.id);
 
             if (existingDeal) {
@@ -262,6 +273,7 @@ app.post("/webhook/shopify", async (req, res) => {
             } else {
                 await createDeal(data, contactId);
             }
+
         } else {
             console.log("❌ Skipping deal, no contactId or price");
         }
@@ -273,10 +285,6 @@ app.post("/webhook/shopify", async (req, res) => {
         res.sendStatus(500);
     }
 });
-
-
-
-
 
 // 🧪 Test route
 app.get("/", (req, res) => {
