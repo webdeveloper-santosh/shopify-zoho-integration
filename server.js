@@ -119,7 +119,6 @@ async function createContact(data) {
     }
 }
 
-// 💰 Create Deal
 // 💰 Create Deal (FINAL VERSION)
 async function createDeal(data, contactId) {
 
@@ -155,6 +154,9 @@ Variant: ${item.variant_title}`;
                     Contact_Name: {
                     id: contactId
                                     },
+                    SKU: items.map(i => i.sku).join(", "),
+    Payment_Method: data.gateway || data.payment_gateway_names?.join(", "),
+
 
                     Description: `
 🛒 PRODUCTS:
