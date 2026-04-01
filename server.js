@@ -152,7 +152,9 @@ Variant: ${item.variant_title}`;
                     // ✅ IMPORTANT (duplicate रोकने के लिए)
                     Order_Id: data.id,
 
-                    Contact_Name: contactId,
+                    Contact_Name: {
+                    id: contactId
+                                    },
 
                     Description: `
 🛒 PRODUCTS:
